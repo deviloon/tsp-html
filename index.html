@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Visualizer — Визуализация задачи коммивояжера</title>
+    <!-- Tailwind CSS для современного мобильного интерфейса -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Стилизация ползунка для мобильных */
+        input[type="range"]::-webkit-slider-thumb {
+            background: #4f46e5;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-6 px-4 md:px-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Шапка -->
+        <header class="mb-8 text-center md:text-left">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Визуализация задачи коммивояжера</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Ссылка на репозиторий: 
+                <a href="https://sourcecraft.dev/derklugekopf/tsp" target="_blank" class="text-indigo-600 hover:underline font-medium">sourcecraft.dev/derklugekopf/tsp</a>
+            </p>
+        </header>
+
+        <!-- Основная сетка -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Панель управления (слева) -->
+            <div class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col space-y-4">
+                <h2 class="text-lg font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2">Параметры обхода</h2>
+                
+                <!-- Координаты городов -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Координаты городов (X Y):</label>
+                    <textarea id="coordsInput" rows="8" 
+                              class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs leading-relaxed bg-slate-50">999 218
+-849 233
+-857 748
+-97 624
+324 -592
+231 -11
+-107 664
+-750 -254
+-650 -155
+-923 -287
+-320 410
+-251 22
+-330 -145
+-135 -700
+507 -839
+-760 691
+-726 -657
+498 -626
+-942 -177
+-862 760
+87 -581
+-95 -483
+131 -201
+-719 971
+-930 927
+-274 -715
+649 343
+-693 767
+436 -404
+287 191
+560 -839
+317 131
+-694 -601
+-128 637
+778 -410
+538 58
+-807 -408
+-889 505
+455 -863
+-49 -955
+-4 319
+-265 640
+296 717
+300 608
+-80 -726
+-71 -818
+-551 137
+198 45
+197 -203
+830 -638
+-409 -515
+-327 -552
+818 83
+-88 966
+-93 -932
+564 663
+251 -266
+-493 -626
+640 -780
+-689 497</textarea>
+                </div>
+
+                <!-- Последовательность пути -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Последовательность пути:</label>
+                    <textarea id="solutionInput" rows="3" 
+                              class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs leading-relaxed bg-slate-50">25 24 54 7 4 34 42 11 41 44 43 56 27 1 53 36 32 30 48 6 23 49 57 29 18 35 50 59 31 15 39 5 21 22 14 45 46 40 55 26 52 51 58 17 33 37 10 19 8 9 13 12 47 2 38 60 16 28 3 20</textarea>
+                </div>
+
+                <!-- Ползунок интервала обновления -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Интервал обновления:</label>
+                        <span id="intervalVal" class="text-sm font-semibold text-indigo-600">150 мс</span>
+                    </div>
+                    <input type="range" id="intervalSlider" min="50" max="1000" value="150" step="50"
+                           class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Кнопка запуска -->
+                <button id="btnGenerate" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 flex items-center justify-center space-x-2 shadow-md">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Сгенерировать анимацию</span>
+                </button>
+            </div>
+
+            <!-- Интерактивная анимация (справа) -->
+            <div class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col relative overflow-hidden">
+                <h2 class="text-lg font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2 text-center md:text-left">Обход городов коммивояжером</h2>
+                
+                <!-- Панель статуса / Плашка (Теперь ВНЕ поля сверху) -->
+                <div id="step-text" class="mb-4 bg-slate-50 border border-slate-200/60 rounded-xl p-3 flex justify-between items-center w-full min-h-[48px] shadow-sm">
+                    <div class="text-sm font-semibold text-slate-400">Инициализация данных...</div>
+                </div>
+
+                <!-- SVG-Контейнер визуализатора -->
+                <div class="relative w-full aspect-square border border-slate-200 rounded-2xl bg-slate-50 overflow-hidden flex items-center justify-center">
+                    <svg id="tsp-svg" viewBox="0 0 600 600" class="w-full h-full">
+                        <!-- Векторная фоновая сетка -->
+                        <defs>
+                            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="0.7" />
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                        
+                        <!-- Путь маршрута -->
+                        <path id="route-path" d="" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+                        
+                        <!-- Группы для динамического наполнения через JS -->
+                        <g id="cities-group"></g>
+                        <g id="labels-group"></g>
+                        
+                        <!-- Активный движущийся коммивояжер -->
+                        <circle id="traveler" r="9" fill="#10b981" stroke="#1e293b" stroke-width="2" style="display: none;" />
+                    </svg>
+                </div>
+
+                <!-- Панель кнопок управления анимацией -->
+                <div class="flex items-center justify-center space-x-4 mt-6">
+                    <!-- Назад -->
+                    <button id="btnPrev" class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition" title="Шаг назад">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <!-- Пауза / Старт -->
+                    <button id="btnPlay" class="p-4 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-lg shadow-indigo-100" title="Старт / Пауза">
+                        <span id="btn-play-icon">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </span>
+                    </button>
+                    <!-- Вперед -->
+                    <button id="btnNext" class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition" title="Шаг вперед">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                    </button>
+                    <!-- Перезапуск -->
+                    <button id="btnRestart" class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition" title="Перезапустить маршрут">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Логика работы приложения на JS -->
+    <script>
+        // Состояние приложения
+        let coordinates = [];
+        let normalizedCoords = [];
+        let pathIndices = [];
+        let pathCoords = [];
+        let isPlaying = false;
+        let currentFrame = 0;
+        let animationTimer = null;
+
+        // Элементы DOM
+        const coordsInput = document.getElementById('coordsInput');
+        const solutionInput = document.getElementById('solutionInput');
+        const intervalSlider = document.getElementById('intervalSlider');
+        const intervalVal = document.getElementById('intervalVal');
+        const btnGenerate = document.getElementById('btnGenerate');
+        const btnPlay = document.getElementById('btnPlay');
+        const btnPlayIcon = document.getElementById('btn-play-icon');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+        const btnRestart = document.getElementById('btnRestart');
+
+        const routePath = document.getElementById('route-path');
+        const citiesGroup = document.getElementById('cities-group');
+        const labelsGroup = document.getElementById('labels-group');
+        const traveler = document.getElementById('traveler');
+        const stepText = document.getElementById('step-text');
+
+        // Обработчик изменения скорости в реальном времени
+        intervalSlider.addEventListener('input', (e) => {
+            intervalVal.textContent = e.target.value + ' мс';
+            if (isPlaying) {
+                pause();
+                play();
+            }
+        });
+
+        // Кнопки управления
+        btnGenerate.addEventListener('click', buildAnimation);
+        btnPlay.addEventListener('click', togglePlay);
+        btnNext.addEventListener('click', stepForward);
+        btnPrev.addEventListener('click', stepBackward);
+        btnRestart.addEventListener('click', restart);
+
+        // Парсер координат
+        function parseCoordinates(text) {
+            const lines = text.trim().split('\n');
+            const coords = [];
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                const parts = line.split(/\s+/);
+                if (parts.length >= 2) {
+                    const x = parseFloat(parts[0]);
+                    const y = parseFloat(parts[1]);
+                    if (!isNaN(x) && !isNaN(y)) {
+                        coords.push({ x, y });
+                    }
+                }
+            }
+            return coords;
+        }
+
+        // Парсер пути (переводит из 1-based в 0-based индексы)
+        function parsePath(text, maxIndex) {
+            return text.trim().split(/\s+/)
+                .map(x => parseInt(x) - 1)
+                .filter(idx => idx >= 0 && idx < maxIndex);
+        }
+
+        // Масштабирование и центрирование точек в пространстве 600x600 с сохранением пропорций
+        function normalizeCoordinates(coords, widthTarget = 600, heightTarget = 600, padding = 45) {
+            if (coords.length === 0) return [];
+            
+            const xCoords = coords.map(p => p.x);
+            const yCoords = coords.map(p => p.y);
+            
+            const minX = Math.min(...xCoords);
+            const maxX = Math.max(...xCoords);
+            const minY = Math.min(...yCoords);
+            const maxY = Math.max(...yCoords);
+            
+            let rangeX = maxX - minX;
+            let rangeY = maxY - minY;
+            
+            if (rangeX === 0) rangeX = 1;
+            if (rangeY === 0) rangeY = 1;
+            
+            // Расчет единого коэффициента масштаба
+            const scale = Math.min((widthTarget - 2 * padding) / rangeX, (heightTarget - 2 * padding) / rangeY);
+            
+            // Центрирование контента
+            const offsetX = padding + (widthTarget - 2 * padding - rangeX * scale) / 2;
+            const offsetY = padding + (heightTarget - 2 * padding - rangeY * scale) / 2;
+            
+            return coords.map((p, idx) => {
+                return {
+                    originalId: idx + 1,
+                    // Инвертируем Y для декартовой сетки (большие Y выше)
+                    x: offsetX + (p.x - minX) * scale,
+                    y: heightTarget - (offsetY + (p.y - minY) * scale)
+                };
+            });
+        }
+
+        // Отрисовка городов
+        function drawStaticBackground() {
+            citiesGroup.innerHTML = '';
+            labelsGroup.innerHTML = '';
+            
+            normalizedCoords.forEach((p) => {
+                // Создание точки города
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", p.x);
+                circle.setAttribute("cy", p.y);
+                circle.setAttribute("r", "5.5");
+                circle.setAttribute("fill", "#ef4444"); // Красный
+                circle.setAttribute("stroke", "#1e293b"); // Окантовка
+                circle.setAttribute("stroke-width", "1.5");
+                citiesGroup.appendChild(circle);
+                
+                // Подпись номера города
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", p.x);
+                text.setAttribute("y", p.y - 10);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("fill", "#475569");
+                text.setAttribute("font-size", "9px");
+                text.setAttribute("font-weight", "bold");
+                text.textContent = p.originalId;
+                labelsGroup.appendChild(text);
+            });
+        }
+
+        // Отрисовка конкретного кадра
+        function renderFrame(frame) {
+            if (pathCoords.length === 0) return;
+            
+            // Рисуем пройденный маршрут до текущего кадра
+            let d = "";
+            for (let i = 0; i <= frame && i < pathCoords.length; i++) {
+                const prefix = (i === 0) ? "M" : "L";
+                d += `${prefix} ${pathCoords[i].x} ${pathCoords[i].y} `;
+            }
+            routePath.setAttribute('d', d);
+            
+            // Позиционируем активный маркер
+            if (frame < pathCoords.length) {
+                traveler.setAttribute('cx', pathCoords[frame].x);
+                traveler.setAttribute('cy', pathCoords[frame].y);
+                traveler.style.display = 'block';
+            } else {
+                traveler.style.display = 'none';
+            }
+            
+            // Наполнение горизонтальной плашки статуса
+            if (frame < pathIndices.length) {
+                const originalId = pathIndices[frame] + 1;
+                stepText.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase tracking-wider">Шаг</span>
+                        <span class="text-sm font-bold text-slate-700">${frame + 1} из ${pathIndices.length}</span>
+                    </div>
+                    <div class="text-sm font-semibold text-slate-600">
+                        Текущий город: <span class="text-indigo-600 font-extrabold text-base">№${originalId}</span>
+                    </div>
+                `;
+            } else {
+                stepText.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wider">Статус</span>
+                        <span class="text-sm font-bold text-emerald-600">Обход успешно завершен!</span>
+                    </div>
+                    <div class="text-xs text-slate-400 font-medium hidden sm:block">Все города посещены</div>
+                `;
+            }
+        }
+
+        // Функция построения анимации
+        function buildAnimation() {
+            pause();
+            
+            coordinates = parseCoordinates(coordsInput.value);
+            if (coordinates.length === 0) {
+                alert("Ошибка: Не удалось распознать координаты городов! Проверьте формат.");
+                return;
+            }
+            
+            pathIndices = parsePath(solutionInput.value, coordinates.length);
+            if (pathIndices.length === 0) {
+                alert("Ошибка: Некорректная последовательность пути!");
+                return;
+            }
+            
+            // Масштабируем
+            normalizedCoords = normalizeCoordinates(coordinates, 600, 600, 45);
+            
+            // Строим координаты пути
+            pathCoords = pathIndices.map(idx => normalizedCoords[idx]);
+            if (pathCoords.length > 0) {
+                pathCoords.push(pathCoords[0]); // Возвращение в начальную точку (замыкание контура)
+            }
+            
+            // Рисуем города
+            drawStaticBackground();
+            
+            // Сбрасываем и воспроизводим анимацию
+            currentFrame = 0;
+            renderFrame(currentFrame);
+            play();
+        }
+
+        // Воспроизведение
+        function play() {
+            if (isPlaying) return;
+            isPlaying = true;
+            btnPlayIcon.innerHTML = `
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            `; // Иконка паузы
+            
+            const interval = parseInt(intervalSlider.value);
+            animationTimer = setInterval(() => {
+                currentFrame++;
+                if (currentFrame >= pathCoords.length) {
+                    currentFrame = 0; // Начинаем цикл заново
+                }
+                renderFrame(currentFrame);
+            }, interval);
+        }
+
+        // Пауза
+        function pause() {
+            if (!isPlaying) return;
+            isPlaying = false;
+            btnPlayIcon.innerHTML = `
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            `; // Иконка воспроизведения
+            clearInterval(animationTimer);
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                pause();
+            } else {
+                play();
+            }
+        }
+
+        function stepForward() {
+            pause();
+            if (pathCoords.length === 0) return;
+            currentFrame = (currentFrame + 1) % pathCoords.length;
+            renderFrame(currentFrame);
+        }
+
+        function stepBackward() {
+            pause();
+            if (pathCoords.length === 0) return;
+            currentFrame = (currentFrame - 1 + pathCoords.length) % pathCoords.length;
+            renderFrame(currentFrame);
+        }
+
+        function restart() {
+            pause();
+            currentFrame = 0;
+            renderFrame(currentFrame);
+            play();
+        }
+
+        // Первоначальный запуск приложения при открытии страницы
+        window.addEventListener('DOMContentLoaded', () => {
+            buildAnimation();
+        });
+    </script>
+</body>
+</html>
